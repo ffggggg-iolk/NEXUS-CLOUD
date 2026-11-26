@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexus-link",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-25",
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEXUS_ROOMS", "class_name": "NexusRoom" }
+    ]
+  },
+  "exports": {
+    "NexusRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}
