@@ -31,3 +31,23 @@ Esta versión es una **preview local**, no un hosting cloud multiusuario termina
 El motor ejecuta el código de los proyectos con los permisos del usuario del dispositivo. Instala únicamente archivos de confianza. No ejecutes proyectos desconocidos ni compartas tokens. Para ofrecerlo a otros usuarios habrá que implementar aislamiento real y emparejamiento autenticado antes de habilitar control remoto.
 
 Android puede cerrar procesos por ahorro de batería, reinicios, temperatura o falta de recursos. Termux:Boot y wake lock ayudan, pero no garantizan disponibilidad permanente. El dispositivo necesita alimentación, conexión y recursos suficientes.
+
+
+## Cloudflare Pages deployment
+
+Connect this repository to Cloudflare Pages with:
+- Production branch: `main`
+- Root directory: `/` (repository root)
+- Build command: leave empty
+- Build output directory: `public`
+
+The `functions/` directory at the repository root contains the Pages Functions API. Set these Pages environment variables (Production and Preview as appropriate):
+- `ADMIN_PASSWORD`: administrator password, at least 12 characters
+- `SESSION_SECRET`: random secret, at least 32 characters
+- `NEXUS_PANEL_TOKEN`: same random token configured as the Worker secret
+- `NEXUS_LINK_URL`: `https://nexus-link.mokccstudio.workers.dev`
+- `NEXUS_DEVICE_ID`: `redmi-a5`
+
+Also configure `NEXUS_PANEL_TOKEN` as a secret on the `nexus-link` Worker. Never put this token in frontend JavaScript or commit it to the repository.
+
+The current Pages API supports login/session, device status, project listing, and start/stop/restart/log requests for projects already installed on NEXUS ENGINE. ZIP upload and remote deletion are not implemented in this Pages version yet.
