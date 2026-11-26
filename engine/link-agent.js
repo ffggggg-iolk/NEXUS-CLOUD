@@ -92,7 +92,7 @@ function connect() {
   url.searchParams.set("role", "device");
   url.searchParams.set("device", DEVICE_ID);
   console.log("[NEXUS LINK] Conectando a Cloudflare...");
-  socket = new WebSocket(url.toString(), {
+  socket = new WebSocket(url.toString(), "nexus-link", {
     headers: { Authorization: "Bearer " + deviceToken },
     handshakeTimeout: 15000,
     maxPayload: 65536,
