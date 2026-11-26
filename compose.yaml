@@ -1,0 +1,22 @@
+services:
+  nexus-cloud:
+    build: .
+    container_name: nexus-cloud
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /app/data
+    ports:
+      - "3000:3000"
+    volumes:
+      - nexus_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  nexus_data:
