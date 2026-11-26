@@ -20,9 +20,7 @@ async function checkSession() {
     const data = await api("/api/me");
     if (data.authenticated) showDashboard();
     else loginScreen.hidden = false;
-  } catch {
-    loginScreen.hidden = false;
-  }
+  } catch { loginScreen.hidden = false; }
 }
 
 $("#login-form").addEventListener("submit", async event => {
@@ -37,9 +35,7 @@ $("#login-form").addEventListener("submit", async event => {
     $("#password").value = "";
     $("#login-error").textContent = "";
     showDashboard();
-  } catch (error) {
-    $("#login-error").textContent = error.message;
-  }
+  } catch (error) { $("#login-error").textContent = error.message; }
 });
 
 $("#logout").addEventListener("click", async () => {
@@ -48,37 +44,30 @@ $("#logout").addEventListener("click", async () => {
   loginScreen.hidden = false;
 });
 
-$("#upload-form").addEventListener("submit", async event => {
-  event.preventDefault();
-  const message = $("#upload-message");
-  const button = event.currentTarget.querySelector("button");
-  button.disabled = true;
-  message.textContent = "Subiendo y verificando ZIP…";
+async function projectAction(projectId, action) {
   try {
-    const form = new FormData(event.currentTarget);
-    const result = await api("/api/projects", { method: "POST", body: form });
-    message.textContent = result.message;
-    event.currentTarget.reset();
+    const result = await api("/api/device/projects/" + encodeURIComponent(projectId) + "/" + action, { method: "POST" });
+    if (action === "logs") {
+      const logs = typeof result.logs === "string" ? result.logs : JSON.stringify(result, null, 2);
+      alert(logs || "Todavía no hay registros.");
+    }
     await refresh();
-  } catch (error) {
-    message.textContent = error.message;
-  } finally {
-    button.disabled = false;
-  }
-});
+  } catch (error) { alert(error.message); }
+}
 
 async function refresh() {
   try {
     const [overview, projects] = await Promise.all([api("/api/overview"), api("/api/projects")]);
     $("#projects-count").textContent = overview.projects;
     $("#running-count").textContent = overview.running;
-    $("#status").textContent = "Online";
+    $("#status").textContent = overview.worker === "online" ? "Conectado" : "Desconectado";
+    $("#status").classList.toggle("online", overview.worker === "online");
     const list = $("#project-list");
     list.replaceChildren();
     if (!projects.projects.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.innerHTML = "<div class='empty-icon'>⌘</div><h3>Aún no hay proyectos</h3><p>Sube un ZIP para guardarlo en tu espacio privado.</p>";
+      empty.innerHTML = "<div class='empty-icon'>⌘</div><h3>Aún no hay proyectos</h3><p>Tu dispositivo está conectado, pero todavía no hay bots instalados en NEXUS ENGINE.</p>";
       list.append(empty);
       return;
     }
@@ -87,26 +76,28 @@ async function refresh() {
       card.className = "project-card";
       const info = document.createElement("div");
       const title = document.createElement("h3");
-      title.textContent = project.name;
+      title.textContent = project.name || project.id;
       const detail = document.createElement("p");
-      detail.textContent = project.original_name + " · " + (project.size / 1024 / 1024).toFixed(2) + " MB";
+      detail.textContent = "ID: " + project.id;
       const status = document.createElement("span");
       status.className = "tag";
-      status.textContent = "GUARDADO · WORKER PENDIENTE";
+      status.textContent = project.status === "running" ? "EN EJECUCIÓN" : "DETENIDO";
       info.append(title, detail, status);
-      const remove = document.createElement("button");
-      remove.className = "danger-button";
-      remove.textContent = "Eliminar";
-      remove.addEventListener("click", async () => {
-        if (!confirm("¿Eliminar este proyecto y su archivo ZIP?")) return;
-        try { await api("/api/projects/" + encodeURIComponent(project.id), { method: "DELETE" }); await refresh(); }
-        catch (error) { alert(error.message); }
-      });
-      card.append(info, remove);
+      const actions = document.createElement("div");
+      actions.className = "project-actions";
+      for (const [action, label] of [["start","Iniciar"],["stop","Detener"],["restart","Reiniciar"],["logs","Registros"]]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", () => projectAction(project.id, action));
+        actions.append(button);
+      }
+      card.append(info, actions);
       list.append(card);
     }
   } catch (error) {
     $("#status").textContent = "Error";
+    $("#status").classList.remove("online");
   }
 }
 
