@@ -9,6 +9,7 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const { promisify } = require("util");
+const nexusLink = require("./nexus-link");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -151,13 +152,42 @@ app.get("/api/me", (req, res) => res.json({ authenticated: req.session?.authenti
 
 app.get("/api/overview", requireAuth, (_req, res) => {
   const projects = db.prepare("SELECT COUNT(*) AS count FROM projects").get().count;
+  const link = nexusLink.status();
   res.json({
     service: "NEXUS CLOUD",
     projects,
-    running: 0,
-    worker: "not_configured",
-    note: "Los archivos se guardan; la ejecución requiere conectar un worker aislado."
+    running: link.projects.filter(project => project.status === "running").length,
+    worker: link.deviceOnline ? "online" : "offline",
+    device: link.device,
+    note: link.deviceOnline ? "Dispositivo conectado mediante NEXUS LINK." : "El dispositivo todavía no está disponible."
   });
+});
+
+app.get("/api/device/status", requireAuth, (_req, res) => {
+  res.json(nexusLink.status());
+});
+
+app.post("/api/device/refresh", requireAuth, async (_req, res) => {
+  try {
+    const result = await nexusLink.request({ type: "status.request" });
+    res.json({ ok: true, device: nexusLink.status(), projects: result.projects || [] });
+  } catch (error) {
+    res.status(503).json({ error: error.message, device: nexusLink.status() });
+  }
+});
+
+app.post("/api/device/projects/:id/:action", requireAuth, async (req, res) => {
+  const { id, action } = req.params;
+  if (!/^[a-f0-9-]{36}$/.test(id)) return res.status(400).json({ error: "ID de proyecto inválido." });
+  const types = { start: "project.start", stop: "project.stop", restart: "project.restart", logs: "logs.request" };
+  const type = types[action];
+  if (!type) return res.status(404).json({ error: "Acción no permitida." });
+  try {
+    const result = await nexusLink.request({ type, projectId: id }, action === "logs" ? 15000 : 20000);
+    res.json(result);
+  } catch (error) {
+    res.status(503).json({ error: error.message });
+  }
 });
 
 app.get("/api/projects", requireAuth, (_req, res) => {
@@ -209,6 +239,9 @@ app.use((err, _req, res, next) => {
 app.use(express.static(path.join(ROOT, "public")));
 app.get("*", (_req, res) => res.sendFile(path.join(ROOT, "public", "index.html")));
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`[NEXUS CLOUD] Panel escuchando en el puerto ${PORT}`);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log("[NEXUS CLOUD] Panel escuchando en el puerto " + PORT);
+  nexusLink.start();
 });
+process.on("SIGTERM", () => { nexusLink.stop(); server.close(); });
+process.on("SIGINT", () => { nexusLink.stop(); server.close(); });
