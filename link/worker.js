@@ -18,7 +18,29 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/health" && request.method === "GET") {
-      return json({ ok: true, service: "NEXUS LINK", version: "0.1.0" });
+      return json({ ok: true, service: "NEXUS LINK", version: "0.2.0" });
+    }
+
+    if (url.pathname === "/panel" && request.method === "POST") {
+      const supplied = tokenFromRequest(request);
+      const expected = env.NEXUS_PANEL_TOKEN || "";
+      if (!expected || !supplied || supplied.length !== expected.length) return json({ error: "Unauthorized" }, 401);
+      let diff = 0;
+      for (let i = 0; i < expected.length; i++) diff |= supplied.charCodeAt(i) ^ expected.charCodeAt(i);
+      if (diff !== 0) return json({ error: "Unauthorized" }, 401);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+      const device = body?.device;
+      const packet = body?.packet;
+      if (typeof device !== "string" || !/^[a-zA-Z0-9_-]{3,64}$/.test(device) || !packet || typeof packet.type !== "string") {
+        return json({ error: "Invalid panel request" }, 400);
+      }
+      const stub = env.NEXUS_ROOMS.get(env.NEXUS_ROOMS.idFromName(device));
+      return stub.fetch("https://nexus-room/panel", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(packet)
+      });
     }
 
     if (url.pathname !== "/connect" || request.method !== "GET") {
@@ -50,11 +72,38 @@ export default {
 };
 
 export class NexusRoom extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.pending = new Map();
+  }
+
   async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/panel" && request.method === "POST") {
+      let packet;
+      try { packet = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+      const deviceSocket = this.ctx.getWebSockets().find(peer => (peer.deserializeAttachment() || {}).role === "device");
+      if (!deviceSocket) return json({ error: "Device offline" }, 503);
+      const requestId = crypto.randomUUID();
+      packet.requestId = requestId;
+      const result = new Promise(resolve => {
+        const timer = setTimeout(() => {
+          this.pending.delete(requestId);
+          resolve(json({ error: "Device response timeout" }, 504));
+        }, 12000);
+        this.pending.set(requestId, { resolve, timer });
+      });
+      try { deviceSocket.send(JSON.stringify(packet)); }
+      catch {
+        const item = this.pending.get(requestId);
+        if (item) { clearTimeout(item.timer); this.pending.delete(requestId); item.resolve(json({ error: "Device send failed" }, 503)); }
+      }
+      return result;
+    }
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("WebSocket upgrade required", { status: 426 });
     }
-    const role = new URL(request.url).searchParams.get("role");
+    const role = url.searchParams.get("role");
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -86,6 +135,13 @@ export class NexusRoom extends DurableObject {
       return;
     }
     const attachment = sender.deserializeAttachment() || {};
+    if (attachment.role === "device" && packet.requestId && this.pending.has(packet.requestId) &&
+        ["status", "action.result", "logs", "error"].includes(packet.type)) {
+      const item = this.pending.get(packet.requestId);
+      clearTimeout(item.timer);
+      this.pending.delete(packet.requestId);
+      item.resolve(json(packet, packet.type === "error" ? 400 : 200));
+    }
     for (const peer of this.ctx.getWebSockets()) {
       if (peer === sender) continue;
       const peerInfo = peer.deserializeAttachment() || {};
