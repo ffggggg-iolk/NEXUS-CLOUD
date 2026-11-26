@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d18">
+  <title>NEXUS CLOUD</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark">N</span><span>NEXUS <b>CLOUD</b></span></a>
+      <div class="side-label">PLATAFORMA</div>
+      <a class="nav active" href="#"><span>◈</span> Resumen</a>
+      <a class="nav" href="#projects"><span>▣</span> Mis proyectos</a>
+      <a class="nav" href="#activity"><span>⌁</span> Actividad</a>
+      <div class="side-label lower">SISTEMA</div>
+      <a class="nav" href="#settings"><span>⚙</span> Ajustes</a>
+      <div class="sidebar-bottom"><span class="pulse"></span> Panel inicial <small>v0.1.0</small></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div><span class="crumb">NEXUS CLOUD</span><span class="slash">/</span><span>Resumen</span></div><div class="profile"><span class="avatar">N</span><span>Workspace</span></div></header>
+      <section class="welcome">
+        <div><div class="eyebrow"><span class="pulse"></span> CONTROL CENTER</div><h1>Tu infraestructura,<br><em>bajo control.</em></h1><p>Administra tus proyectos desde un solo lugar.</p></div>
+        <div class="hero-orb"><div class="orb-core">N</div></div>
+      </section>
+      <section class="stats">
+        <article class="stat"><div class="stat-top">PROYECTOS <span>▣</span></div><strong id="projects">0</strong><small>Proyectos registrados</small></article>
+        <article class="stat"><div class="stat-top">EN EJECUCIÓN <span>◉</span></div><strong id="running">0</strong><small>Procesos activos</small></article>
+        <article class="stat"><div class="stat-top">ESTADO DEL PANEL <span>⌁</span></div><strong class="online" id="status">Online</strong><small>API del panel disponible</small></article>
+      </section>
+      <section class="section-head" id="projects"><div><div class="eyebrow">WORKSPACE</div><h2>Mis proyectos</h2></div><button id="new-project" disabled title="Disponible cuando se configure el worker">＋ Nuevo proyecto</button></section>
+      <section class="empty"><div class="empty-icon">⌘</div><h3>Tu espacio está preparado</h3><p>La interfaz inicial está instalada. El siguiente paso será conectar el almacenamiento y el worker seguro para subir y ejecutar proyectos.</p><span class="tag">WORKER PENDIENTE</span></section>
+      <footer id="activity">NEXUS CLOUD <span>Construido para administrar con claridad.</span></footer>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
