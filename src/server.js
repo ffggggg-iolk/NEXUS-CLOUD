@@ -197,6 +197,15 @@ app.delete("/api/projects/:id", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.use((err, _req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "El ZIP supera el límite de 50 MB." : "No se pudo recibir el archivo." });
+  }
+  console.error("[NEXUS CLOUD] Request error:", err.message);
+  res.status(500).json({ error: "Error interno del servidor." });
+});
+
 app.use(express.static(path.join(ROOT, "public")));
 app.get("*", (_req, res) => res.sendFile(path.join(ROOT, "public", "index.html")));
 
