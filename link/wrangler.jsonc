@@ -8,10 +8,10 @@
       { "name": "NEXUS_ROOMS", "class_name": "NexusRoom" }
     ]
   },
-  "exports": {
-    "NexusRoom": {
-      "type": "durable-object",
-      "storage": "sqlite"
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["NexusRoom"]
     }
-  }
+  ]
 }
