@@ -20,6 +20,18 @@ Panel web privado para guardar y organizar proyectos ZIP desde el móvil.
 
 Los datos se guardan en el volumen Docker `nexus_data`. En un servidor remoto, usa HTTPS mediante un proxy inverso y configura `TRUST_PROXY=1` solo si el proxy es de confianza.
 
+## Despliegue del panel en Enzonic
+El repositorio está preparado para un servidor Node.js persistente. En el panel de Enzonic:
+1. Crea un servidor de tipo **Node.js generic** y conecta este repositorio de GitHub.
+2. Usa Node.js 20 o superior.
+3. Comando de instalación: `npm install`.
+4. Comando de inicio: `npm start`.
+5. Configura estas variables privadas: `NODE_ENV=production`, `ADMIN_PASSWORD` (mínimo 12 caracteres), `SESSION_SECRET` (mínimo 32 caracteres aleatorios) y `TRUST_PROXY=1` si el servicio está detrás del proxy HTTPS de Enzonic.
+6. Usa el puerto que el proveedor asigne mediante `PORT`. No fijes un puerto distinto.
+7. Comprueba `/api/health` y después inicia sesión.
+
+El plan gratuito anunciado por Enzonic para Node.js genérico indica 512 MB de RAM, 50% de CPU, 10 GB SSD y servicio siempre activo, sujeto a capacidad y a las condiciones vigentes del proveedor. Revisa los límites antes de publicar.
+
 ## Desarrollo local
 Requiere Node.js 20 o superior:
 ```bash
