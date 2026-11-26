@@ -2,6 +2,11 @@ name: Deploy NEXUS LINK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'link/**'
+      - '.github/workflows/deploy-nexus-link.yml'
 
 permissions:
   contents: read
